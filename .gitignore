@@ -1,0 +1,6 @@
+.dist
+.pth
+*.pyc
+*.pt
+*.csv
+*.0
