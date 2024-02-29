@@ -17,13 +17,13 @@ torch.set_printoptions(precision=4)
 if __name__ == '__main__':
     # model初始化9
     model = DQNTrainer(ENVS_NUM, OBS_SHAPE, ACTION_NUM, TestModelArch, ReplayBuffer, eps_clip=START_EPS_RATE,gamma=GAMMA_RATE,
-                    lr=LEARNING_RATE, target_update=TARGET_UPDATE_STEP,model_save_dir= MODEL_SAVE_DIR)
+                    lr=LEARNING_RATE, weight_decay = WEIGHT_DECAY, buffer_size = 50000, target_update=TARGET_UPDATE_STEP,model_save_dir= MODEL_SAVE_DIR)
     model.load_newest(MODEL_SAVE_DIR)
     # 多进程调用 环境初始化
-    env_list = vec_game(ENVS_NUM, CartPoleEnv)
+    env_list = vec_game(ENVS_NUM, CartPoleEnv, monitor_file_dir=MONITOR_DIR)
     
     return_dict = env_list.reset()
-    states, infos = return_dict  
+    states, infos = return_dict
 
     writer = SummaryWriter(TENSORBOARD_SAVE_DIR)
     

@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import time
-from tensordict import TensorDict
 # 神经网络模型训练
 def configure_optimizers(model: nn.Module, weight_decay:float):
     # Parameters must have a defined order.
@@ -57,7 +56,6 @@ class DQNTrainer():
             act_n,
             model_arch,
             buffer_arch,
-            
             gamma=0.9,
             tau=1.0,
             lr=1e-3,
@@ -86,19 +84,20 @@ class DQNTrainer():
         # self.optimizer = torch.optim.Adam(optimizer_group,
         #                                    lr=self.lr, weight_decay=WEIGHT_DECAY)
         self.optimizer = torch.optim.Adam(self.q_net.parameters(),
-                                           lr=self.lr, weight_decay=weight_decay)
+                                        lr=self.lr, weight_decay=weight_decay)
         # 所跑轮数
         self.train_count = 0
         self.states_len = env_num
         self.index_list = [i for i in range(self.states_len)]
-        self.criterion = torch.nn.SmoothL1Loss(reduction='none')
-        
+        self.criterion = torch.nn.MSELoss().to(device=self.device)
         self.model_save_dir = model_save_dir
-        
     def __build_model(self, model_arch):
         q_net = model_arch(self.obs_shape_dict, self.act_n)
         q_net_target = model_arch(self.obs_shape_dict, self.act_n)
         q_net_target.load_state_dict(q_net.state_dict())
+        
+        q_net.train()
+        q_net_target.eval()
         return q_net.to(self.device), q_net_target.to(self.device)
 
     def choose_action(self, states):
@@ -107,18 +106,12 @@ class DQNTrainer():
         if temp < self.eps_clip:
             actions = np.random.randint(0, self.act_n, (self.states_len,))
         else:
-            
-            with torch.no_grad():
-                states_dict = {
-                }
-                for key in self.obs_shape_dict.keys():
-                    states_dict[key] = torch.cat([torch.tensor(states[i][key]).unsqueeze(dim = 0) for i in self.index_list], dim = 0)
-                states_dict= TensorDict(states_dict, batch_size=self.states_len).to(self.device)
-                q_value = self.q_net(states_dict).detach()
-            actions = q_value.argmax(dim=1).to('cpu').numpy()
-        print(actions)
+            states_dict = {}
+            for key in self.obs_shape_dict.keys():
+                states_dict[key] = torch.cat([torch.tensor(states[i][key]).unsqueeze(dim = 0) for i in self.index_list], dim = 0).to(self.device)
+            q_value = self.q_net(states_dict)
+            actions = q_value.argmax(dim=1).cpu().numpy()
         return actions
-    
     # 存储，根据memory类,存储当前状态，价值，动作后状态，是否结束
     def store(self, states, actions, rewards, next_states, dones, truncateds):
         states_save = {}
@@ -126,7 +119,6 @@ class DQNTrainer():
         for key in self.obs_shape_dict.keys():
             states_save[key] = torch.cat([torch.tensor(states[i][key]).unsqueeze(dim = 0) for i in self.index_list], dim = 0)
             next_states_save[key] = torch.cat([torch.tensor(next_states[i][key]).unsqueeze(dim = 0) for i in self.index_list], dim = 0)
-        
         actions = torch.tensor(actions).type(torch.int32)
         rewards = torch.tensor(rewards).type(torch.FloatTensor)
         dones = torch.tensor(dones).type(torch.FloatTensor)
@@ -135,39 +127,37 @@ class DQNTrainer():
         self.replay_buffer.add(states_save, actions, rewards, next_states_save, dones, truncateds)
 
     def learn(self, batch_size=128):
-        states, actions, rewards, next_states, dones, truncateds= self.replay_buffer.sample(batch_size)
-        states = TensorDict(states, batch_size=batch_size).to(self.device)
+        states, actions, rewards, next_states, dones, truncateds = self.replay_buffer.sample(batch_size)
+        for key in self.obs_shape_dict:
+            states[key] = states[key].to(self.device)
+            next_states[key] = next_states[key].to(self.device)
         actions = actions.to(self.device)
         rewards = rewards.to(self.device)
-        next_states = TensorDict(next_states, batch_size=batch_size).to(self.device)
         dones = dones.to(self.device)
         truncateds = truncateds.to(self.device)
-        with torch.no_grad():
-            next_actions = self.q_net(next_states).argmax(dim = 1)
-            q_targets = rewards + self.gamma  * (1.0 - dones + truncateds)*self.q_net_target(next_states)[torch.arange(0, batch_size), next_actions]  # Q值
-        q_values = self.q_net(states)[torch.arange(0, batch_size), actions]  # Q值
+        # next_actions = self.q_net(next_states).argmax(dim = 1)
+        # q_targets = rewards + self.gamma  * (1.0 - dones + truncateds)*self.q_net_target(next_states)[torch.arange(0, batch_size), next_actions]  # Q值
+        q_targets = rewards + self.gamma * (1.0- dones + truncateds)*(self.q_net_target(next_states).detach()).max(1)[0]
+        q_values = self.q_net(states)[torch.arange(0, batch_size), actions]
         dqn_loss = self.criterion(q_values, q_targets)
-        loss = dqn_loss.mean()
-        
         self.optimizer.zero_grad()
-        loss.backward()
+        dqn_loss.backward()
         self.optimizer.step()
-        
         if self.train_count % self.target_update == 0:
-            print("target model update!")
-            target_net_state_dict = self.q_net_target.state_dict()
-            policy_net_state_dict = self.q_net.state_dict()
-            for key in policy_net_state_dict:
-                target_net_state_dict[key] = policy_net_state_dict[key] * \
-                    self.tau + target_net_state_dict[key]*(1-self.tau)
-            self.q_net_target.load_state_dict(target_net_state_dict)
+            # print("target model update!")
+            # target_net_state_dict = self.q_net_target.state_dict()
+            # policy_net_state_dict = self.q_net.state_dict()
+            # for key in policy_net_state_dict:
+            #     target_net_state_dict[key] = policy_net_state_dict[key] * \
+            #         self.tau + target_net_state_dict[key]*(1-self.tau)
+            # self.q_net_target.load_state_dict(target_net_state_dict)
+            self.q_net_target.load_state_dict(self.q_net.state_dict())
         self.train_count += 1
-        return loss.item()
-    
+        return dqn_loss.item()
     def save(self):
         # 保存模型
         torch.save(self.q_net_target.state_dict(),
-               self.model_save_dir+"/%s.pt" % (str(time.time_ns())))
+            self.model_save_dir+"/%s.pt" % (str(time.time_ns())))
 
     def load(self, file_name):
         print("load the model %s" % file_name)
