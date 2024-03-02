@@ -7,38 +7,30 @@ class TestModelArch(nn.Module):
         total_concat_size = 0
         for key, subspace in obs_shape_dict.items():
             if key == "box_observation":
-                box_observation_net = nn.ModuleList()
-                box_observation_net.append(
-                    nn.Sequential(
-                        nn.Linear(4, 50),
+                extractors[key] = nn.Sequential(
+                        nn.Linear(4, 512),
+                        nn.ReLU(),
+                        nn.Linear(512, 1024),
+                        nn.ReLU(),
+                        nn.Linear(1024, 1024),
                         nn.ReLU(),
                     )
-                )
-                extractors[key] = box_observation_net
-                total_concat_size += 50
+                total_concat_size += 1024
         self.extractors = nn.ModuleDict(extractors)        # Update the features dim manually
-        # self.value = nn.Sequential(
-        #     nn.Linear(total_concat_size*list(obs_shape_dict.values())[0][0], 64),
-        #     nn.LeakyReLU(),
-        #     nn.Linear(64, 1))
-        self.advantage = nn.Sequential(
-            nn.Linear(total_concat_size*list(obs_shape_dict.values())[0][0], 50),
+        self.value = nn.Sequential(
+            nn.Linear(total_concat_size, 256),
             nn.ReLU(),
-            nn.Linear(50, num_outputs))
+            nn.Linear(256, 1))
+        self.advantage = nn.Sequential(
+            nn.Linear(total_concat_size, 512),
+            nn.ReLU(),
+            nn.Linear(512, 256),
+            nn.ReLU(),
+            nn.Linear(256, num_outputs)
+            )
     def forward(self, observations) -> th.Tensor:
-        encoded_tensor_list = []
-        seq_len = observations["box_observation"].shape[1]
-        for i in range(seq_len):
-            feature_list = []
-            for key, obs in observations.items():
-                if key == "box_observation":
-                    feature = self.extractors[key][0](obs[:,i]).unsqueeze(dim = 1)
-                feature_list.append(feature)
-            feature_list = th.cat(feature_list, dim = -1)
-            encoded_tensor_list.append(feature_list)
-        encoded_tensor = th.cat(encoded_tensor_list, dim = 1).squeeze(dim = -2)
-        # value = self.value(encoded_tensor)
-        advantage = self.advantage(encoded_tensor)
-        
-        return advantage
-        # return value + advantage - advantage.mean(dim=-1, keepdim=True)
+        feature_list = [self.extractors[key](obs) for key, obs in observations.items()]
+        feature_list_tensor = th.cat(feature_list, dim = -1).squeeze(dim = -2)
+        value = self.value(feature_list_tensor)
+        advantage = self.advantage(feature_list_tensor)
+        return value + advantage - advantage.mean(dim=-1, keepdim=True)

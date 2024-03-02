@@ -5,83 +5,48 @@ class DuelingDqnNet(nn.Module):
     def __init__(self, obs_shape_dict, num_outputs, image_net_block_num = 1, tick_net_block_num = 1, lstm_layer = 3):
         super(DuelingDqnNet, self).__init__()
         extractors = {}
-        
         total_concat_size = 0
-        
         for key, subspace in obs_shape_dict.items():
             if key == "image":
-                image_net = nn.ModuleList()
-                image_net.append(
-                    nn.Sequential(
-                        nn.Conv2d(1, 32, kernel_size=8, stride=4, padding= 2),
-                        nn.LeakyReLU(),
+                image_net = nn.Sequential(
+                    nn.Conv2d(1, 32, kernel_size=8, stride=4, padding= 2),
+                    nn.LeakyReLU(),
                         # nn.MaxPool2d(kernel_size=3, stride=1),
                         # nn.LayerNorm2d(32)),
-                        nn.Conv2d(32, 128, kernel_size=5, stride=3, padding= 1),
-                        nn.LeakyReLU(),
+                    nn.Conv2d(32, 128, kernel_size=5, stride=3, padding= 1),
+                    nn.LeakyReLU(),
                         # nn.MaxPool2d(kernel_size=3, stride=1, padding= 1),
                         # nn.BatchNorm2d(128),
-                        nn.Conv2d(128, 256, kernel_size=3, stride=1),
-                        nn.LeakyReLU(),
+                    nn.Conv2d(128, 256, kernel_size=3, stride=1),
+                    nn.LeakyReLU(),
                         # nn.MaxPool2d(kernel_size=3, stride=1, padding= 1),
                         # nn.Conv2d(256, 512, kernel_size=3, stride=1, padding=1),
                         # nn.MaxPool2d(kernel_size=2, stride=1, padding=1),
                         # # nn.BatchNorm2d(256),
                         # # nn.BatchNorm2d(256),
                         # nn.LeakyReLU(),
-                        nn.Flatten(),
+                    nn.Flatten(),
                         # nn.LeakyReLU(),
                         # nn.LayerNorm(1024),
                         # nn.LeakyReLU(),
-                        nn.Linear(9216, 512),
-                        nn.LeakyReLU()
+                    nn.Linear(9216, 512),
+                    nn.LeakyReLU()
                     )
-                )
-                for i in range(image_net_block_num):
-                    image_block_net = nn.Sequential(
-                        nn.Linear(512, 512),
-                        nn.LeakyReLU(),
-                        nn.Linear(512, 512),
-                        nn.LeakyReLU()
-                    )
-                    image_net.append(image_block_net)
                 extractors[key] = image_net
                 total_concat_size += 512
             elif key == 'tick':
-                tick_net = nn.ModuleList()
-                tick_net.append(
-                    nn.Sequential(nn.Linear(1, 256),
-                                  nn.LeakyReLU())
-                )
-                for i in range(tick_net_block_num):
-                    tick_block_net = nn.Sequential(
-                        nn.Linear(256, 256),
-                        nn.LeakyReLU(),
-                        nn.Linear(256, 256),
-                        nn.LeakyReLU()
-                    )
-                    tick_net.append(tick_block_net)
+                tick_net = nn.Sequential(
+                    nn.Linear(1, 256),
+                    nn.LeakyReLU())
                 extractors[key] = tick_net
                 total_concat_size += 256
             elif key == 'last_press':
-                last_press_net = nn.ModuleList()
-                last_press_net.append(
-                    nn.Sequential(
-                        nn.Linear(num_outputs, 512)
-                    )
-                )
-                for i in range(tick_net_block_num):
-                    last_press_block_net = nn.Sequential(
-                        nn.Linear(512, 512),
-                        nn.LeakyReLU(),
-                        nn.Linear(512, 512),
-                        nn.LeakyReLU()
-                    )
-                    last_press_net.append(last_press_block_net)
+                last_press_net = nn.Sequential(
+                    nn.Linear(num_outputs, 512),
+                    nn.LeakyReLU())
                 extractors[key] = last_press_net
                 total_concat_size += 512
-        
-
+                
         self.extractors = nn.ModuleDict(extractors)
         
         # Update the features dim manually
@@ -91,73 +56,38 @@ class DuelingDqnNet(nn.Module):
         self.rnn = nn.LSTM(input_size=total_concat_size, hidden_size=self.hidden_size, num_layers=self.lstm_layer, batch_first=False)
 
         self.value = nn.Sequential(
-            nn.Linear(self.lstm_layer*self.hidden_size*2, 1024),
-            # nn.LayerNorm(512),
-            nn.LeakyReLU(),
-            nn.Linear(1024, 512),
+            nn.Linear(self.lstm_layer*self.hidden_size*2, 512),
             nn.LeakyReLU(),
             nn.Linear(512, 256),
             nn.LeakyReLU(),
-            # nn.Linear(128, 64),
-            # # nn.LayerNorm(512),
-            # # nn.LayerNorm(512),
-            # nn.LeakyReLU(),
             nn.Linear(256, 1))
         
         self.advantage = nn.Sequential(
-            nn.Linear(self.lstm_layer*self.hidden_size*2, 1024),
-            # nn.LayerNorm(512),
-            nn.LeakyReLU(),
-            nn.Linear(1024, 512),
+            nn.Linear(self.lstm_layer*self.hidden_size*2, 512),
             nn.LeakyReLU(),
             nn.Linear(512, 512),
             nn.LeakyReLU(),
-            # nn.Linear(128, 64),
-            # # nn.LayerNorm(512),
-            # nn.LeakyReLU(),
             nn.Linear(512, num_outputs))
-
-        # for m in self.extractors.modules():
-        #     if isinstance(m, (nn.Conv2d, nn.Linear)):
-        #         nn.init.xavier_uniform_(m.weight)
-        # # for m in self.value.modules():
-        # #     if isinstance(m, (nn.Conv2d, nn.Linear)):
-        # #         nn.init.xavier_uniform_(m.weight)
-        # for m in self.advantage.modules():
-        #     if isinstance(m, (nn.Conv2d, nn.Linear)):
-        #         nn.init.xavier_uniform_(m.weight)
                 
-        # self.advantage_memory_tensor = th.zeros((num_outputs,),requires_grad=False).to("cuda")
     def forward(self, observations) -> th.Tensor:
-        # encoded_image_list = []
         
-        encoded_tensor_list = []
-        batch_size = observations['image'].shape[0]
-        seq_len = observations['image'].shape[1]
-        for i in range(seq_len):
-            feature_list = [ ]
-            for key, obs in observations.items():
-                if key == 'image':
-                    feature = self.extractors[key][0](obs[:,i].unsqueeze(dim = 1))
-                    for j in range(1, len(self.extractors[key])):
-                        feature = feature + self.extractors[key][j](feature)
-                    feature = feature.unsqueeze(dim = 1)
-                elif key == 'last_press':
-                    feature = self.extractors[key][0](obs[:,i].unsqueeze(dim = 1))
-                    for j in range(1, len(self.extractors[key])):
-                        feature = feature + self.extractors[key][j](feature)
-                else:
-                    feature = self.extractors[key][0](obs[:,i].unsqueeze(dim = 1))
-                    for j in range(1, len(self.extractors[key])):
-                        feature = feature + self.extractors[key][j](feature)
-                feature_list.append(feature)
-            feature_list = th.cat(feature_list, dim = -1)
-            encoded_tensor_list.append(feature_list)
-        encoded_tensor_list = th.cat(encoded_tensor_list, dim = 1).transpose(0, 1)
+        feature_list = []
+        for key, obs in observations.items():
+            if key == 'image':
+                image_feature = [self.extractors[key](obs[:,i].unsqueeze(dim = 1)).unsqueeze(dim = 1) for i in range(obs.shape[1])]
+                image_feature = th.cat(image_feature, dim = 1)
+                feature_list.append(image_feature)
+            else:
+                feature_list.append(self.extractors[key](obs))
+                
+        feature_list_tensor = th.cat(feature_list, dim = -1).transpose(0, 1)
         
-        __, (hn, cn)= self.rnn(encoded_tensor_list)
+        batch_size = feature_list_tensor.shape[1]
+        
+        __, (hn, cn)= self.rnn(feature_list_tensor)
         
         hn, cn = hn.transpose(0, 1).contiguous().view(batch_size, -1), cn.transpose(0, 1).contiguous().view(batch_size, -1)
+        
         
         rnn_output = th.cat([hn,cn], dim = -1)
         

@@ -2,12 +2,12 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from config.test_env_train_setting import *
+from config.mario_train_setting import *
 import torch
 from dqn.DQN_trainner import DQNTrainer
 from dqn.replay_buffer import ReplayBuffer
-from model_arch.test_model_arch import TestModelArch
-from game.test_game import CartPoleEnv
+from model_arch.mario_model_arch import DuelingDqnNet
+from game.mario_game import mario_env
 from game.vec_game import vec_game
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -16,11 +16,11 @@ torch.set_printoptions(precision=4)
 
 if __name__ == '__main__':
     # model初始化9
-    model = DQNTrainer(ENVS_NUM, OBS_SHAPE, ACTION_NUM, TestModelArch, ReplayBuffer, eps_clip=START_EPS_RATE,gamma=GAMMA_RATE,
+    model = DQNTrainer(ENVS_NUM, OBS_SHAPE, ACTION_NUM, DuelingDqnNet, ReplayBuffer, eps_clip=START_EPS_RATE,gamma=GAMMA_RATE,
                     lr=LEARNING_RATE, weight_decay = WEIGHT_DECAY, buffer_size = BUFFER_SIZE, target_update=TARGET_UPDATE_STEP,model_save_dir= MODEL_SAVE_DIR)
     model.load_newest(MODEL_SAVE_DIR)
     # 多进程调用 环境初始化
-    env_list = vec_game(ENVS_NUM, CartPoleEnv, monitor_file_dir=MONITOR_DIR, obs_shape_dict= OBS_SHAPE)
+    env_list = vec_game(ENVS_NUM, mario_env, monitor_file_dir=MONITOR_DIR, obs_shape_dict= OBS_SHAPE)
     
     states, __ = env_list.reset()
     writer = SummaryWriter(TENSORBOARD_SAVE_DIR)
