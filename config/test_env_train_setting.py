@@ -1,8 +1,8 @@
 import os
 import time
 
-ENVS_NUM = 20  # 进程数量
-TRAIN_MODEL_STEP = ENVS_NUM * 1 # 多少个游戏step之后进行训练
+ENVS_NUM = 10  # 进程数量
+TRAIN_MODEL_STEP = ENVS_NUM * 4 # 多少个游戏step之后进行训练
 TQDMSHOWSTEP = TRAIN_MODEL_STEP * 10  # tdqm 滑条更新
 TENSORBOARD_WRITE_STEP = TQDMSHOWSTEP * 2# 多少step后写入tensorboard
 SAVE_MODEL_STEP = TENSORBOARD_WRITE_STEP * 100  # 多少step进行模型保存

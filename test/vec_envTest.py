@@ -10,8 +10,7 @@ if __name__ == '__main__':
         "box_observation": (SEQ_LEN, 4),
     }
     
-    vec_game = vec_game(2, CartPoleEnv, monitor_file_dir= "result/monitor", obs_shape_dict= OBS_SHAPE
-                        )
+    vec_game = vec_game(2, CartPoleEnv, monitor_file_dir= "result/monitor", obs_shape_dict= OBS_SHAPE)
     vec_game.reset()
     while True:
         vec_game.step([1,0])

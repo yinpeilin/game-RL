@@ -14,17 +14,21 @@ def game_worker(game, monitor_file_path, conn2):
             state, reward, done, truncated, info = one_game.reset_step(arg)
             conn2.send((state, reward, done, truncated, info))
         elif msg == 'reset':
-            state, info = one_game.reset()
+            state, info = one_game.reset(arg)
             conn2.send((state, info))
         elif msg == 'render':
             one_game.render()
 
-class vec_game():
+class VecGameWrapper():
     def __init__(self, nums:int, game: object, monitor_file_dir:str, obs_shape_dict:dict):
         self.game_class = game
         self.nums = nums
         self.obs_shape_dict = obs_shape_dict
         self.conn1_list = []
+        
+        if not os.path.exists(monitor_file_dir):
+            os.mkdir(monitor_file_dir)
+        
         for i in range(nums):
             conn1, conn2 = Pipe(True)
             monitor_file_path = os.path.join(monitor_file_dir,str(i)+".csv")
@@ -33,10 +37,10 @@ class vec_game():
             self.conn1_list.append(conn1)
     def reset(self):
         states = {}
-        for key in self.obs_shape_dict.keys():
-            states[key] = []
         infos = []
         
+        for key in self.obs_shape_dict.keys():
+            states[key] = []
         for i in range(self.nums):
             self.conn1_list[i].send(('reset', 0))
         for i in range(self.nums):
@@ -51,17 +55,16 @@ class vec_game():
         return states, infos
     def step(self, action_vec):
         states = {}
-        for key in self.obs_shape_dict.keys():
-            states[key] = []
         rewards = []
         dones = []
         truncateds = [] 
         infos = []
+        for key in self.obs_shape_dict.keys():
+            states[key] = []
         for i in range(self.nums):
             self.conn1_list[i].send(('reset_step', action_vec[i]))
             
         for i in range(self.nums):
-            # TODO: 允许异步执行
             state, reward, done, truncated, info = self.conn1_list[i].recv()
             for key, value in state.items():
                 states[key].append(value)

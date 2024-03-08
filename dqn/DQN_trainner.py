@@ -42,7 +42,6 @@ def configure_optimizers(model: nn.Module, weight_decay:float):
     ]
     return optim_groups
 
-
 class DQNTrainer():
     # 初始化传入环境的初始化信息与状态，
     # agent可操作的动作数量，
@@ -89,7 +88,7 @@ class DQNTrainer():
         # 所跑轮数
         self.train_count = 0
         self.states_len = env_num
-        self.criterion = torch.nn.SmoothL1Loss(reduction='none').to(device=self.device)
+        self.criterion = torch.nn.SmoothL1Loss().to(device=self.device)
         self.model_save_dir = model_save_dir
     def __build_model(self, model_arch):
         q_net = model_arch(self.obs_shape_dict, self.act_n)
@@ -105,7 +104,7 @@ class DQNTrainer():
                 states_dict[key] = torch.FloatTensor(value).to(self.device)
             q_value = self.q_net(states_dict)
             actions = q_value.argmax(dim=1).cpu().numpy()
-        print(actions)
+            print(actions)
         return actions
     # 存储，根据memory类,存储当前状态，价值，动作后状态，是否结束
     def store(self, states, actions, rewards, next_states, dones, truncateds):
@@ -116,7 +115,7 @@ class DQNTrainer():
         self.replay_buffer.add(states, actions, rewards, next_states, dones, truncateds)
 
     def learn(self, batch_size=128):
-        states, actions, rewards, next_states, dones, truncateds, weights, indices = self.replay_buffer.sample(batch_size)
+        states, actions, rewards, next_states, dones, truncateds = self.replay_buffer.sample(batch_size)
         for key in self.obs_shape_dict:
             states[key] = states[key].to(self.device)
             next_states[key] = next_states[key].to(self.device)
@@ -124,7 +123,7 @@ class DQNTrainer():
         rewards = rewards.unsqueeze(dim = -1).to(self.device)
         dones = dones.unsqueeze(dim = -1).to(self.device)
         truncateds = truncateds.unsqueeze(dim = -1).to(self.device)
-        weights = weights.unsqueeze(dim = -1).to(self.device)
+        # weights = weights.unsqueeze(dim = -1).to(self.device)
         
         # next_actions = self.q_net(next_states).argmax(dim = 1).unsqueeze(dim = -1)
         # q_targets = rewards + self.gamma  * (1.0 - dones + truncateds)*self.q_net_target(next_states).gather(1, next_actions)
@@ -134,16 +133,11 @@ class DQNTrainer():
         q_values = self.q_net(states).gather(1, actions)
         dqn_loss = self.criterion(q_values, q_targets)
         
-        update_priors = dqn_loss.clone().squeeze(dim = -1).detach()
-        
-        dqn_loss = dqn_loss.mean()
-        
+        # update_priors = dqn_loss.clone().squeeze(dim = -1).detach()
         self.optimizer.zero_grad()
         dqn_loss.backward()
         self.optimizer.step()
-        
-        
-        self.replay_buffer.update_priorities(indices, update_priors.cpu().numpy())
+        # self.replay_buffer.update_priorities(indices, update_priors.cpu().numpy())
         
         if self.train_count % self.target_update == 0:
             target_net_state_dict = self.q_net_target.state_dict()

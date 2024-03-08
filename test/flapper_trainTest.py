@@ -2,12 +2,12 @@ import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from config.mario_train_setting import *
+from config.flapper_train_setting import *
 import torch
 from dqn.DQN_trainner import DQNTrainer
 from dqn.replay_buffer import ReplayBuffer
-from model_arch.mario_model_arch import DuelingDqnNet
-from game.mario_game import mario_env
+from model_arch.flapper_model_arch import DuelingDqnNet
+from game.flapper_game import FlapperEnv
 from game.vec_game import vec_game
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -20,7 +20,7 @@ if __name__ == '__main__':
                     lr=LEARNING_RATE, weight_decay = WEIGHT_DECAY, buffer_size = BUFFER_SIZE, target_update=TARGET_UPDATE_STEP,model_save_dir= MODEL_SAVE_DIR)
     model.load_newest(MODEL_SAVE_DIR)
     # 多进程调用 环境初始化
-    env_list = vec_game(ENVS_NUM, mario_env, monitor_file_dir=MONITOR_DIR, obs_shape_dict= OBS_SHAPE)
+    env_list = vec_game(ENVS_NUM, FlapperEnv, monitor_file_dir=MONITOR_DIR, obs_shape_dict= OBS_SHAPE)
     
     states, __ = env_list.reset()
     writer = SummaryWriter(TENSORBOARD_SAVE_DIR)
@@ -30,7 +30,6 @@ if __name__ == '__main__':
         for i in range(0, STARTSTEP, ENVS_NUM):
             actions = model.choose_action(states=states)
             next_states, rewards, dones, truncateds, __= env_list.step(actions)
-            
             model.store(states, actions, rewards, next_states, dones, truncateds)
             states = next_states
             t.update(ENVS_NUM)
@@ -45,6 +44,7 @@ if __name__ == '__main__':
         for i in range(STARTSTEP, TIMESTEP, ENVS_NUM):
             actions = model.choose_action(states=states)
             next_states, rewards, dones, truncateds, infos = env_list.step(actions)
+            env_list.render()
             model.store(states, actions, rewards, next_states, dones, truncateds)
             states = next_states
             reward_all += sum(rewards)

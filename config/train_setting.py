@@ -2,7 +2,15 @@ import os
 import time
 from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
 
+'''
+the basic setting
+'''
+train = True
+render = False
 
+'''
+the basic model train setting
+'''
 ENVS_NUM = 10 # 进程数量
 TRAIN_MODEL_STEP = ENVS_NUM * 4 # 多少个游戏step之后进行训练
 TQDMSHOWSTEP = TRAIN_MODEL_STEP * 10  # tdqm 滑条更新
@@ -26,7 +34,13 @@ TAU = 0.5  # 软更新参数，当为1时为硬更新
 WEIGHT_DECAY = 1e-8  # 正则化系数
 BUFFER_SIZE = 50000
 
-# 模型s设置相关
+MONITOR_DIR = "result/monitor"+str(time.time_ns())
+MODEL_SAVE_DIR = "result/model"
+TENSORBOARD_SAVE_DIR = "result/log/"+str(time.time_ns())
+
+'''
+the setting that you need to load from the game
+'''
 SEQ_LEN = 4
 OBS_SHAPE = {
     'image': (SEQ_LEN, 100, 100),
@@ -36,6 +50,3 @@ OBS_SHAPE = {
 
 ACTION_NUM = len(COMPLEX_MOVEMENT)
 
-MONITOR_DIR = "result/monitor"
-MODEL_SAVE_DIR = "result/model"
-TENSORBOARD_SAVE_DIR = "result/log/"+str(time.time_ns())

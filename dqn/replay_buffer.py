@@ -23,7 +23,7 @@ class ReplayBuffer(object):
         self.rewards = np.zeros((self.buffer_size, ), dtype=np.float32)
         self.dones = np.zeros((self.buffer_size, ), dtype=np.float32)
         self.truncateds = np.zeros((self.buffer_size, ), dtype=np.float32)
-        self.weights = np.ones((self.buffer_size, ), dtype=np.float32)
+        # self.weights = np.ones((self.buffer_size, ), dtype=np.float32)
 
     def add(self, states, actions, rewards, next_states, dones, truncateds):  # 将数据加入buffer
         end_index = self.buffer_size if (
@@ -37,7 +37,7 @@ class ReplayBuffer(object):
         self.rewards[self.index:end_index] = rewards[0:element_size]
         self.dones[self.index:end_index] = dones[0:element_size]
         self.truncateds[self.index:end_index] = truncateds[0:element_size]
-        self.weights[self.index:end_index] = 1.0
+        # self.weights[self.index:end_index] = 1.0
         
         self.size += actions.shape[0]
         self.size = self.buffer_size if self.size >= self.buffer_size else self.size
@@ -54,11 +54,12 @@ class ReplayBuffer(object):
         rewards = th.FloatTensor(self.rewards[random_indices])
         dones = th.FloatTensor(self.dones[random_indices])
         truncateds =  th.FloatTensor(self.truncateds[random_indices])
-        weights = th.FloatTensor(self.weights[random_indices])
-        return states, actions, rewards, next_states, dones, truncateds, weights, random_indices
+        # weights = th.FloatTensor(self.weights[random_indices])
+        return states, actions, rewards, next_states, dones, truncateds 
+    # weights, random_indices
     
-    def update_priorities(self, indices, prios):
-        max_value = prios.max() + 1e-5
-        min_value = prios.min()
-        self.weights[indices]*=0.5
-        self.weights[indices]+= 10*(prios - min_value)/(max_value - min_value)
+    # def update_priorities(self, indices, prios):
+    #     max_value = prios.max() + 1e-5
+    #     min_value = prios.min()
+    #     self.weights[indices]*=0.9
+    #     self.weights[indices]+= 1*(prios - min_value)/(max_value - min_value)
