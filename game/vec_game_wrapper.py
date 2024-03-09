@@ -30,6 +30,7 @@ def game_worker(game, monitor_file_path, conn2):
             one_game.render()
 
 class VecGameWrapper():
+    # TODO: get the async method finished
     def __init__(self, nums:int, game_class: object, monitor_file_dir:str, obs_shape_dict:dict):
         check_env(game_class, obs_shape_dict)
         

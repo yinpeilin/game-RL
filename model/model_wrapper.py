@@ -3,7 +3,7 @@ from torch import nn
 import time
 from copy import deepcopy
 
-class DuelingDqnModelWrapper():
+class ModelWrapper():
     def __init__(
         self, 
         model_arch:nn.Module, 
