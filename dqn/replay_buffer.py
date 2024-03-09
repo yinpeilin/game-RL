@@ -24,7 +24,7 @@ class ReplayBuffer(object):
         self.dones = np.zeros((self.buffer_size, ), dtype=np.float32)
         self.truncateds = np.zeros((self.buffer_size, ), dtype=np.float32)
         # self.weights = np.ones((self.buffer_size, ), dtype=np.float32)
-
+    
     def add(self, states, actions, rewards, next_states, dones, truncateds):  # 将数据加入buffer
         end_index = self.buffer_size if (
             self.index + actions.shape[0]) > self.buffer_size else (self.index + actions.shape[0])
@@ -43,7 +43,7 @@ class ReplayBuffer(object):
         self.size = self.buffer_size if self.size >= self.buffer_size else self.size
         self.index = end_index % self.buffer_size
     def sample(self, batch_size):
-        assert self.size > batch_size, 'sample size can not be larger than buffer size'
+        assert self.size >= batch_size, 'sample size can not be larger than buffer size'
         random_indices = np.random.randint(0, self.size, size=batch_size)
         states = {}
         next_states = {}

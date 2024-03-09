@@ -3,6 +3,16 @@ import os
 import asyncio
 import numpy as np
 
+
+def check_env(game_class, obs_shape_dict):
+    
+    game = game_class()
+    for key in obs_shape_dict.keys():
+        if game.state[key].shape != obs_shape_dict[key]:
+            raise ValueError("the {} setting may not be same as the game setting, \
+                            the game shape is {}, the setting shape is {}".format(key, game.state[key], obs_shape_dict[key]))
+    del game
+    
 def game_worker(game, monitor_file_path, conn2):
     one_game = game(monitor_file_path = monitor_file_path)
     while True:
@@ -20,8 +30,10 @@ def game_worker(game, monitor_file_path, conn2):
             one_game.render()
 
 class VecGameWrapper():
-    def __init__(self, nums:int, game: object, monitor_file_dir:str, obs_shape_dict:dict):
-        self.game_class = game
+    def __init__(self, nums:int, game_class: object, monitor_file_dir:str, obs_shape_dict:dict):
+        check_env(game_class, obs_shape_dict)
+        
+        self.game_class = game_class
         self.nums = nums
         self.obs_shape_dict = obs_shape_dict
         self.conn1_list = []
@@ -35,6 +47,11 @@ class VecGameWrapper():
             sub_process = Process(target=game_worker, args=(self.game_class, monitor_file_path, conn2))
             sub_process.start()
             self.conn1_list.append(conn1)
+            
+    @property
+    def num(self)-> int:
+        return self.nums
+    
     def reset(self):
         states = {}
         infos = []
@@ -46,7 +63,7 @@ class VecGameWrapper():
         for i in range(self.nums):
             state, info = self.conn1_list[i].recv()
             for key, value in state.items():
-                states[key].append(value)
+                states[key].append(np.expand_dims(value, axis=0))
             infos.append(info)
             
         for key, value in states.items():
@@ -54,6 +71,9 @@ class VecGameWrapper():
             
         return states, infos
     def step(self, action_vec):
+        
+        assert len(action_vec) == self.nums, "the action_vec shound be the same as the game numbers"
+        
         states = {}
         rewards = []
         dones = []
@@ -67,18 +87,21 @@ class VecGameWrapper():
         for i in range(self.nums):
             state, reward, done, truncated, info = self.conn1_list[i].recv()
             for key, value in state.items():
-                states[key].append(value)
+                states[key].append(np.expand_dims(value, axis=0))
             rewards.append(reward)
             dones.append(done)
             truncateds.append(truncated)
             infos.append(info)
         for key, value in states.items():
             states[key] = np.concatenate(value, axis=0, dtype = np.float32)
+            
+            
         return states, rewards, dones, truncateds, infos
         # return asyncio.run(self.async_step(action_vec))
     def render(self):
         for i in range(self.nums):
             self.conn1_list[i].send(('render', 0))
+            
         # return asyncio.run(self.async_render())
     async def send_msg(self, index ,msg, arg):
         self.conn1_list[index].send((msg, arg))
