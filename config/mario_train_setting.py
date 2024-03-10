@@ -45,13 +45,14 @@ the setting that you need to load from the game
 
 from game.mario_game import mario_env
 game_class = mario_env
+ACTION_NUM = len(COMPLEX_MOVEMENT)
 SEQ_LEN = 4
 OBS_SHAPE = {
     'image': (SEQ_LEN, 100, 100),
     "tick": (SEQ_LEN, 1),
-    "last_press": (SEQ_LEN, len(COMPLEX_MOVEMENT))
+    "last_press": (SEQ_LEN, ACTION_NUM)
 }
-ACTION_NUM = len(COMPLEX_MOVEMENT)
+
 
 from model.mario_model_arch import DuelingDqnNet
 MODEL_CLASS = DuelingDqnNet

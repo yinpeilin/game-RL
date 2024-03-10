@@ -1,5 +1,4 @@
 import gymnasium as gym
-from gymnasium import spaces
 import numpy as np
 import csv
 from copy import deepcopy

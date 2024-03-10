@@ -1,8 +1,8 @@
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-# from config.test_train_setting import *
-from config.flapper_train_setting import *
+from config.test_train_setting import *
+# from config.flapper_train_setting import *
 from dqn.dqn_trainner import DQNTrainer
 
 if __name__ == '__main__':

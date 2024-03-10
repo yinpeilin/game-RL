@@ -16,15 +16,11 @@ class ReplayBuffer(object):
             state_shape.extend(value)
             self.states[key] = np.zeros(state_shape, dtype = np.float32)
             self.next_states[key] = np.zeros(state_shape, dtype = np.float32)
-        # self.states = np.zeros((self.buffer_size, 4), dtype=np.float32)
-        # self.next_states = np.zeros((self.buffer_size, 4), dtype=np.float32)
-        
         self.actions = np.zeros((self.buffer_size, ), dtype=np.int64)
         self.rewards = np.zeros((self.buffer_size, ), dtype=np.float32)
         self.dones = np.zeros((self.buffer_size, ), dtype=np.float32)
         self.truncateds = np.zeros((self.buffer_size, ), dtype=np.float32)
         # self.weights = np.ones((self.buffer_size, ), dtype=np.float32)
-    
     def add(self, states, actions, rewards, next_states, dones, truncateds):  # 将数据加入buffer
         end_index = self.buffer_size if (
             self.index + actions.shape[0]) > self.buffer_size else (self.index + actions.shape[0])

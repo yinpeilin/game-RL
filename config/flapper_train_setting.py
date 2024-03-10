@@ -13,7 +13,7 @@ NEED_RENDER = True
 '''
 the basic model train setting
 '''
-ENVS_NUM = 10 # 进程数量
+ENVS_NUM = 1 # 进程数量
 TRAIN_MODEL_STEP = 4 # 多少个游戏step之后进行训练
 TQDM_STEP = 100  # tdqm 滑条更新
 TENSORBOARD_WRITE_STEP = 1000# 多少step后写入tensorboard
@@ -27,8 +27,8 @@ TARGET_UPDATE_STEP = 400  # 训练多少轮后更新target_net
 BATCH_SIZE = 1024 # 模型训练batch_size
 LEARNING_RATE = 1e-4  # 探索率
 GAMMA_RATE = 0.99  # 遗忘率
-START_EPS_RATE = 0.1  # 开始的探索率
-EPS_DECREASE_RATIO = 0.99 # 探索率衰减速度
+START_EPS_RATE = 0.005  # 开始的探索率
+EPS_DECREASE_RATIO = 0.95 # 探索率衰减速度
 FINAL_EPS_RATE = 0.001  # 结束的探
 TAU = 0.5  # 软更新参数，当为1时为硬更新
 
