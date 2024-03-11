@@ -9,5 +9,5 @@ if __name__ == '__main__':
     while True:
         if done == True:
             env.reset()
-        state, reward, done, truncated, info = env.step(env.action_space.sample())
+        state, reward, done, truncated, info = env.step(0)
         env.render()

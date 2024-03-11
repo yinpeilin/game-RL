@@ -3,7 +3,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from game.vec_game_wrapper import VecGameWrapper
-from model.model_wrapper import DuelingDqnModelWrapper
+from model.model_wrapper import ModelWrapper
 import numpy as np
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -70,7 +70,7 @@ class DQNTrainer():
         
     def model_wrapper_init(self, model_arch, optimizer, loss_function, obs_shape_dict, 
         act_n, learning_rate, gamma, weight_decay, tau, device, model_save_dir):
-        self.model_wrapper = DuelingDqnModelWrapper(model_arch, optimizer, loss_function, obs_shape_dict, 
+        self.model_wrapper = ModelWrapper(model_arch, optimizer, loss_function, obs_shape_dict, 
                                                     act_n, learning_rate, gamma, weight_decay, tau, device, model_save_dir)
         self.model_wrapper.load_newest(model_save_dir)
     def replay_buffer_init(self, buffer_arch, buffer_size, obs_shape_dict):

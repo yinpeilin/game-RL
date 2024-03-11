@@ -7,7 +7,7 @@ import csv
 from copy import deepcopy
 
 class mario_env():
-    def __init__(self, frame_tick = 4, num_tick = 4, monitor_file_path = None):
+    def __init__(self, worker_id, frame_tick = 4, num_tick = 4, monitor_file_path = None):
         
         self.game = JoypadSpace(gym.make('SuperMarioBros-1-1-v0'), COMPLEX_MOVEMENT)
 

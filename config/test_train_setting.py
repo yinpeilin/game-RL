@@ -10,8 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 the basic setting
 '''
 NEED_TRAIN = True
-NEED_RENDER = True                                                                                                                                                                                                                         
-
+NEED_RENDER =True
 '''
 the basic model train setting
 '''

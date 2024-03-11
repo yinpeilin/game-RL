@@ -6,7 +6,7 @@ import csv
 from copy import deepcopy
 
 class FlapperEnv():
-    def __init__(self, frame_tick = 1, num_tick = 4, monitor_file_path = None):
+    def __init__(self, worker_id, frame_tick = 1, num_tick = 4, monitor_file_path = None):
         self.game = gym.make("FlappyBird-v0", render_mode="rgb_array", use_lidar=False)
         self.num_tick = num_tick
         self.frame_tick = frame_tick

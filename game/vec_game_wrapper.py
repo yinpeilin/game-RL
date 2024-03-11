@@ -9,12 +9,11 @@ def check_env(game_class, obs_shape_dict):
     game = game_class()
     for key in obs_shape_dict.keys():
         if game.state[key].shape != obs_shape_dict[key]:
-            raise ValueError("the {} setting may not be same as the game setting, \
-                            the game shape is {}, the setting shape is {}".format(key, game.state[key], obs_shape_dict[key]))
+            raise ValueError("the {} setting may not be same as the game setting, the game shape is {}, the setting shape is {}".format(key, game.state[key].shape, obs_shape_dict[key]))
     del game
     
-def game_worker(game, monitor_file_path, conn2):
-    one_game = game(monitor_file_path = monitor_file_path)
+def game_worker(game, index: int, monitor_file_path: str, conn2):
+    one_game = game(worker_id = index,monitor_file_path = monitor_file_path)
     while True:
         msg, arg = conn2.recv()
         if msg == 'step':
@@ -45,7 +44,7 @@ class VecGameWrapper():
         for i in range(nums):
             conn1, conn2 = Pipe(True)
             monitor_file_path = os.path.join(monitor_file_dir,str(i)+".csv")
-            sub_process = Process(target=game_worker, args=(self.game_class, monitor_file_path, conn2))
+            sub_process = Process(target=game_worker, args=(self.game_class, i, monitor_file_path, conn2))
             sub_process.start()
             self.conn1_list.append(conn1)
             

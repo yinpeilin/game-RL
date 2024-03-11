@@ -4,7 +4,7 @@ import csv
 from copy import deepcopy
 
 class CartPoleEnv():
-    def __init__(self, frame_tick = 1, num_tick = 1, monitor_file_path = None):
+    def __init__(self, worker_id, frame_tick = 1, num_tick = 1, monitor_file_path = None):
         self.game = gym.make('CartPole-v1', render_mode="rgb_array").unwrapped
         self.num_tick = num_tick
         self.frame_tick = frame_tick
